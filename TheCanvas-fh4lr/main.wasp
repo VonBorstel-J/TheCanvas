@@ -1,0 +1,147 @@
+app TheCanvas {
+  wasp: {
+    version: "^0.11.1"
+  },
+  title: "TheCanvas",
+  client: {
+    rootComponent: import { Layout } from "@client/Layout.jsx"
+  },
+  db: {
+    prisma: {
+      clientPreviewFeatures: ["extendedWhereUnique"]
+    }
+  },
+  auth: {
+    userEntity: User,
+    methods: {
+      usernameAndPassword: {}
+    },
+    onAuthFailedRedirectTo: "/login",
+    onAuthSucceededRedirectTo: "/"
+  }
+}
+
+route LoginRoute { path: "/login", to: LoginPage }
+page LoginPage {
+  component: import Login from "@client/pages/auth/Login.jsx"
+}
+route SignupRoute { path: "/signup", to: SignupPage }
+page SignupPage {
+  component: import Signup from "@client/pages/auth/Signup.jsx"
+}
+
+entity User {=psl
+    id             Int             @id @default(autoincrement())
+    username       String          @unique
+    password       String
+    type           String          @default("Subscriber")
+    isVerified     Boolean         @default(false)
+    profileImage   String
+    bio            String
+    socialLinks    String
+    subscriptions  Subscription[]
+    directMessages DirectMessage[]
+psl=}
+
+entity Subscription {=psl
+    id           Int    @id @default(autoincrement())
+    name         String
+    price        Float
+    userId       Int
+    subscriberId Int
+    User         User   @relation(fields: [userId], references: [id])
+psl=}
+
+entity Content {=psl
+    id       Int       @id @default(autoincrement())
+    category String
+    isPublic Boolean   @default(true)
+    title    String
+    body     String
+    tags     String
+    userId   Int
+    comments Comment[]
+psl=}
+
+entity Comment {=psl
+    id        Int     @id @default(autoincrement())
+    text      String
+    contentId Int
+    userId    Int
+    Content   Content @relation(fields: [contentId], references: [id])
+psl=}
+
+entity DirectMessage {=psl
+    id         Int    @id @default(autoincrement())
+    message    String
+    senderId   Int
+    receiverId Int
+    User       User?  @relation(fields: [userId], references: [id])
+    userId     Int?
+psl=}
+
+action createContent {
+  fn: import { createContent } from "@server/actions.js",
+  entities: [Content]
+}
+
+action updateContent {
+  fn: import { updateContent } from "@server/actions.js",
+  entities: [Content]
+}
+
+action deleteContent {
+  fn: import { deleteContent } from "@server/actions.js",
+  entities: [Content]
+}
+
+action subscribe {
+  fn: import { subscribe } from "@server/actions.js",
+  entities: [User, Subscription]
+}
+
+action postComment {
+  fn: import { postComment } from "@server/actions.js",
+  entities: [Content, Comment]
+}
+
+action deleteComment {
+  fn: import { deleteComment } from "@server/actions.js",
+  entities: [Comment]
+}
+
+query getContent {
+  fn: import { getContent } from "@server/queries.js",
+  entities: [Content]
+}
+
+query getUserProfile {
+  fn: import { getUserProfile } from "@server/queries.js",
+  entities: [User]
+}
+
+query getSubscription {
+  fn: import { getSubscription } from "@server/queries.js",
+  entities: [Subscription]
+}
+
+route HomeRoute { path: "/", to: HomePage }
+page HomePage { component: import { HomePage } from "@client/pages/HomePage.jsx" }
+
+route UserProfileRoute { path: "/profile/:userId", to: UserProfilePage }
+page UserProfilePage {
+  component: import { UserProfile } from "@client/pages/UserProfile.jsx",
+  authRequired: true
+}
+
+route ContentRoute { path: "/content/:contentId", to: ContentPage }
+page ContentPage {
+  component: import { Content } from "@client/pages/Content.jsx",
+  authRequired: true
+}
+
+route CreatorDashboardRoute { path: "/dashboard/:creatorId", to: CreatorDashboardPage }
+page CreatorDashboardPage {
+  component: import { CreatorDashboard } from "@client/pages/CreatorDashboard.jsx",
+  authRequired: true
+}
